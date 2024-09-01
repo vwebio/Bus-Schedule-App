@@ -1,0 +1,97 @@
+
+:root {
+    --body-bg: #ffffff;
+    --body-color: #000000;
+    --table-bg: #ffffff;
+    --table-border-color: #dee2e6;
+    --table-hover-bg: #f8f9fa;
+    --table-hover-color: #000000;
+    --table-striped-bg: #f1f3f5;
+    --table-striped-color: #000000;
+  }
+  
+  [data-theme="dark"] {
+    --body-bg: #343a40;
+    --body-color: #dee2e6;
+    --table-bg: #212529;
+    --table-border-color: #495057;
+    --table-hover-bg: #343a40;
+    --table-hover-color: #dee2e6;
+    --table-striped-bg: #3a3f44;
+    --table-striped-odd-bg: #373b3f;
+    --table-striped-color: #dee2e6;
+  }
+  
+  body {
+    background-color: var(--body-bg);
+    color: var(--body-color);
+  }
+  
+  .table {
+    background-color: var(--table-bg);
+    border-color: var(--table-border-color);
+    color: var(--body-color);
+  }
+  
+  .table-hover tbody tr:hover {
+    background-color: var(--table-hover-bg);
+    color: var(--table-hover-color);
+  }
+  
+  .table th,
+  .table td {
+    border-color: var(--table-border-color);
+    color: var(--body-color);
+  }
+
+  .table-striped tbody tr:nth-of-type(even) {
+    background-color: var(--table-striped-bg);
+    color: var(--table-striped-color);
+  }
+
+  .table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--table-striped-bg);
+    color: var(--table-striped-color);
+  }
+  
+  .table-striped>tbody>tr:nth-of-type(odd)>* {
+    background-color: var(--table-striped-odd-bg);
+    color: var(--table-striped-color); 
+}
+
+  /* Кнопка смены темы */
+.btn-theme {
+    background-color: unset;
+    color: darkorange;
+    border: none;
+    width: 50px;
+    height: 50px;
+    font-size: 54px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .btn-theme:hover {
+    color: wheat;
+  }
+  
+  .btn-theme:focus {
+    outline: none;
+  }
+  
+  .btn-theme:active {
+    color: #ffffff;
+  }
+  
+
+  /* Блок - Текущая дата и время */
+  .current-data {
+    background-color: var(--table-border-color);
+    width: max-content;
+    padding: 5px 10px;
+    border-radius: 40px;
+    margin: auto;
+}

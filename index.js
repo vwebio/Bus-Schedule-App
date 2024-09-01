@@ -1,14 +1,19 @@
-import express from "express"; // Импортируем фреймворк Express для создания веб-приложения
+import express from "express"; // Импортируем фреймворк Express
 import { readFile } from "node:fs/promises"; // Импортируем метод readFile из модуля fs/promises для чтения файлов с использованием промисов
 import { dirname, join } from "node:path"; // Импортируем функции dirname и join для работы с путями файлов
 import { fileURLToPath } from "node:url"; // Импортируем fileURLToPath для преобразования URL файла в путь к файлу
 import { DateTime } from "luxon"; // Импортируем библиотеку luxon для работы с датами и временем
 
-const port = 3000; // Устанавливаем порт, на котором будет работать сервер
-const app = express(); // Создаем экземпляр приложения Express
+// Устанавливаем порт, на котором будет работать сервер
+const port = 3000;
+const app = express();
+
 const __filename = fileURLToPath(import.meta.url); // Получаем полный путь к текущему файлу
 const __dirname = dirname(__filename); // Получаем директорию текущего файла
 const timeZone = "UTC"; // Устанавливаем часовой пояс для работы с временем
+
+// Настройка статических файлов
+app.use(express.static(join(__dirname, 'public')));
 
 // Асинхронная функция для загрузки данных об автобусах из файла buses.json
 const loadBuses = async () => {
@@ -33,7 +38,7 @@ const getNextDeparture = (firstDepartureTime, frequencyMinutes) => {
 
   // Рассчитываем конец дня
   const endOfDay = DateTime.now()
-    .set({ hours: 23, minutes: 59, seconds: 59 }) // Устанавливаем конец дня на 23:59:59
+    .set({ hours: 23, minutes: 59, seconds: 59 }) 
     .setZone(timeZone); // Применяем часовой пояс
 
   // Если время отправления больше конца дня, переносим его на следующий день
@@ -70,8 +75,6 @@ const sendUpdateData = async () => {
       bus.frequencyMinutes
     );
 
-    console.log("nextDeparture: ", nextDeparture); // Выводим в консоль время следующего отправления (console.log)
-
     return {
       ...bus, // Сохраняем все данные об автобусе
       nextDeparture: nextDeparture, // Добавляем объект DateTime для удобства сортировки
@@ -99,10 +102,10 @@ app.get("/next-departure", async (req, res) => {
 
     res.json(updateBuses); // Отправляем обновленные данные клиенту в формате JSON
 
-    console.log("updateBuses: ", updateBuses); // Выводим в консоль обновленные данные (console.log)
   } catch (err) {
     res.send(err); // В случае ошибки отправляем сообщение об ошибке клиенту
   }
 });
 
-app.listen(port, () => {}); // Запускаем сервер на указанном порту
+// Запускаем сервер на указанном порту
+app.listen(port, () => {`Server is running on http://localhost:${port}`});
