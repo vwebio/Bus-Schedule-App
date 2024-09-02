@@ -2,7 +2,8 @@ import express from "express"; // Импортируем фреймворк Expr
 import { readFile } from "node:fs/promises"; // Импортируем метод readFile из модуля fs/promises для чтения файлов с использованием промисов
 import { dirname, join } from "node:path"; // Импортируем функции dirname и join для работы с путями файлов
 import { fileURLToPath } from "node:url"; // Импортируем fileURLToPath для преобразования URL файла в путь к файлу
-import { DateTime } from "luxon"; // Импортируем библиотеку luxon для работы с датами и временем
+import { DateTime, Duration } from "luxon"; // Импортируем библиотеку luxon для работы с датами и временем
+import { WebSocketServer } from "ws"; // WebSockets
 
 // Устанавливаем порт, на котором будет работать сервер
 const port = 3000;
@@ -24,12 +25,11 @@ const loadBuses = async () => {
 
 // Функция для расчета времени следующего отправления автобуса
 const getNextDeparture = (firstDepartureTime, frequencyMinutes) => {
-  const now = DateTime.now().setZone(timeZone); // Получаем текущее время с учетом установленного часового пояса
-  const [hours, minutes] = firstDepartureTime.split(":").map(Number); // Разбиваем строку времени на часы и минуты и преобразуем их в числа
+  const now = DateTime.now(); // Получаем текущее время с учетом установленного часового пояса
+  const [hour, minute] = firstDepartureTime.split(":").map(Number); // Разбиваем строку времени на часы и минуты и преобразуем их в числа
 
   let departure = DateTime.now()
-    .set({ hours, minutes }) // Устанавливаем время первого отправления
-    .setZone(timeZone); // Применяем часовой пояс
+    .set({ hour, minute, second: 0, millisecond: 0 }); // Устанавливаем время первого отправления
 
   // Если текущее время больше времени отправления, добавляем интервал частоты отправлений
   if (now > departure) {
@@ -38,15 +38,14 @@ const getNextDeparture = (firstDepartureTime, frequencyMinutes) => {
 
   // Рассчитываем конец дня
   const endOfDay = DateTime.now()
-    .set({ hours: 23, minutes: 59, seconds: 59 }) 
-    .setZone(timeZone); // Применяем часовой пояс
+    .set({ hour: 23, minute: 59, second: 59 }); 
 
   // Если время отправления больше конца дня, переносим его на следующий день
   if (departure > endOfDay) {
     departure = departure
       .startOf("day") // Устанавливаем начало следующего дня
       .plus({ days: 1 }) // Переходим на следующий день
-      .set({ hours, minutes }); // Устанавливаем время отправления
+      .set({ hour, minute }); // Устанавливаем время отправления
   }
 
   // Пока текущее время больше времени отправления, добавляем интервалы частоты отправлений
@@ -57,7 +56,7 @@ const getNextDeparture = (firstDepartureTime, frequencyMinutes) => {
       departure = departure
         .startOf("day")
         .plus({ days: 1 })
-        .set({ hours, minutes });
+        .set({ hour, minute });
     }
   }
 
@@ -68,6 +67,9 @@ const getNextDeparture = (firstDepartureTime, frequencyMinutes) => {
 const sendUpdateData = async () => {
   const buses = await loadBuses(); // Загружаем данные об автобусах
 
+  // Получение тtкущего времени
+  const now = DateTime.now().setZone(timeZone);
+
   // Обновляем данные для каждого автобуса, рассчитывая время следующего отправления
   const updateBuses = buses.map((bus) => {
     const nextDeparture = getNextDeparture(
@@ -75,12 +77,16 @@ const sendUpdateData = async () => {
       bus.frequencyMinutes
     );
 
+    // 
+    const timeRemaining = Duration.fromMillis(nextDeparture.diff(now));
+
     return {
       ...bus, // Сохраняем все данные об автобусе
       nextDeparture: nextDeparture, // Добавляем объект DateTime для удобства сортировки
       formattedDeparture: {
         data: nextDeparture.toFormat("yyyy-MM-dd"), // Форматируем дату следующего отправления
         time: nextDeparture.toFormat("HH:mm"), // Форматируем время следующего отправления
+        remaining: timeRemaining.toFormat("hh:mm:ss"), // Форматируем оставшееся время
       },
     };
   });
@@ -107,5 +113,52 @@ app.get("/next-departure", async (req, res) => {
   }
 });
 
-// Запускаем сервер на указанном порту
-app.listen(port, () => {`Server is running on http://localhost:${port}`});
+
+// Создаем WebSocket сервер без привязки к конкретному серверу
+const wss = new WebSocketServer({ noServer: true });
+// Множество для хранения активных подключений WebSocket
+const clients = new Set();
+
+wss.on("connection", (ws) => {
+  console.log("WebSocket соединение установлено");
+  // Добавляем новое соединение в множество клиентов
+  clients.add(ws);
+
+  // Функция для отправки обновленных данных клиентам
+  const sendUpdates = async () => {
+    try {
+      // Получаем обновленные данные автобусов
+      const updatedBuses = await sendUpdateData();
+      // Отправляем данные клиенту в формате JSON
+      ws.send(JSON.stringify(updatedBuses));
+    } catch (error) {
+      // Логируем ошибку, если не удалось отправить данные
+      console.log("Ошибка WebSocket соединения: ", error);
+    }
+  };
+
+  // Запускаем интервал для отправки обновлений каждую секунду
+  const intervalId = setInterval(sendUpdates, 1000);
+
+  // Обработка закрытия соединения WebSocket
+  ws.on("close", () => {
+    // Останавливаем отправку обновлений
+    clearInterval(intervalId);
+    // Удаляем соединение из множества клиентов
+    clients.delete(ws);
+    console.log("WebSocket соединение закрыто");
+  });
+});
+
+// Запускаем HTTP сервер на указанном порту
+const server = app.listen(port, () => {
+  console.log(`Сервер запущен на http://localhost:${port}`);
+});
+
+server.on("upgrade", (req, socket, head) => {
+  // Обработка обновления протокола до WebSocket
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    // Эмитируем событие подключения WebSocket
+    wss.emit("connection", ws, req);
+  });
+});

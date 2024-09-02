@@ -71,28 +71,68 @@ function updateDateTime() {
 updateDateTime();
 setInterval(updateDateTime, 1000);
 
+
 // Функция для отображения данных об автобусах в таблице
 const renderBusData = (buses) => {
   const tableBody = document.querySelector("#bus tbody");
   tableBody.textContent = "";
 
   buses.forEach((bus) => {
+
     const row = document.createElement("tr");
     row.innerHTML = `
     <td>${bus.busNumber}</td>
     <td><div class="text-start">${bus.startPoint} - ${bus.endPoint}</div></td>
     <td>${bus.nextDeparture.data}</td>
     <td>${bus.nextDeparture.time}</td>
+    <td>${bus.nextDeparture.remaining}</td>
     `;
 
     tableBody.append(row);
   });
 };
 
+
+// Функция для инициализации WebSocket соединения
+const initWebsocket = () => {
+  // Создаем новое WebSocket соединение с текущим хостом
+  const ws = new WebSocket(`ws://${location.host}`);
+
+  // Событие при открытии соединения
+  ws.addEventListener("open", () => {
+    console.log("WebSocket подключен!");
+  });
+
+  // Событие при получении сообщения от сервера
+  ws.addEventListener("message", (event) => {
+    // Парсим данные автобусов из JSON
+    const buses = JSON.parse(event.data);
+
+    // Отображаем данные автобусов на странице
+    renderBusData(buses);
+  });
+
+  // Событие при ошибке в WebSocket соединении
+  ws.addEventListener("error", (error) => {
+    console.log("Ошибка WebSocket!", error);
+  });
+
+  // Событие при закрытии WebSocket соединения
+  ws.addEventListener("close", () => {
+    console.log("WebSocket соединение закрыто!");
+  });
+};
+
+// Основная функция инициализации приложения
 const init = async () => {
+  // Получаем начальные данные автобусов с сервера
   const buses = await fetchBusData();
 
+  // Отображаем начальные данные автобусов на странице
   renderBusData(buses);
+
+  // Инициализируем WebSocket для получения обновлений в реальном времени
+  initWebsocket();
 };
 
 init();
