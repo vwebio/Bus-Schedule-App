@@ -62,6 +62,7 @@ function updateDateTime() {
   const currentDate = getCurrentDate();
   const currentTime = getCurrentTime();
   document.querySelector(".current-data").innerHTML = `
+  <i class="fas fa-circle" style="color: green;"></i> 
   Сегодня: 
   <i class="fas fa-calendar-alt"></i> ${currentDate} 
   <i class="fas fa-clock"></i> ${currentTime}`;
@@ -72,18 +73,41 @@ updateDateTime();
 setInterval(updateDateTime, 1000);
 
 
+// Функция для форматирования даты из backend в 'dd-mm-yyyy'
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+
 // Функция для отображения данных об автобусах в таблице
 const renderBusData = (buses) => {
   const tableBody = document.querySelector("#bus tbody");
   tableBody.textContent = "";
 
+  const currentDate = getCurrentDate();  // Получаем текущую дату для сравнения
+
   buses.forEach((bus) => {
+
+    const busDate = formatDate(bus.nextDeparture.data); // Преобразуем дату автобуса
+
+    // Определяем иконку на основе сравнения дат
+    let icon;
+    
+    if (busDate === currentDate) {
+      icon = '<i class="fas fa-circle" style="color: green;"></i>'; // Зеленый кружок для сегодняшней даты
+    } else {
+      icon = '<i class="fas fa-circle" style="color: gray;"></i>'; // Серый кружок для будущих дат
+    }
 
     const row = document.createElement("tr");
     row.innerHTML = `
     <td>${bus.busNumber}</td>
     <td><div class="text-start">${bus.startPoint} - ${bus.endPoint}</div></td>
-    <td>${bus.nextDeparture.data}</td>
+    <td>${icon} ${busDate}</td>
     <td>${bus.nextDeparture.time}</td>
     <td>${bus.nextDeparture.remaining}</td>
     `;
