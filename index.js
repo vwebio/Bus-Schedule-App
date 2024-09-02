@@ -11,7 +11,7 @@ const app = express();
 
 const __filename = fileURLToPath(import.meta.url); // Получаем полный путь к текущему файлу
 const __dirname = dirname(__filename); // Получаем директорию текущего файла
-const timeZone = "UTC"; // Устанавливаем часовой пояс для работы с временем
+const timeZone = "Europe/Kaliningrad"; // Устанавливаем часовой пояс для работы с временем
 
 // Настройка статических файлов
 app.use(express.static(join(__dirname, 'public')));
@@ -28,7 +28,7 @@ const getNextDeparture = (firstDepartureTime, frequencyMinutes) => {
   const now = DateTime.now(); // Получаем текущее время с учетом установленного часового пояса
   const [hour, minute] = firstDepartureTime.split(":").map(Number); // Разбиваем строку времени на часы и минуты и преобразуем их в числа
 
-  let departure = DateTime.now()
+  let departure = DateTime.now().setZone(timeZone)
     .set({ hour, minute, second: 0, millisecond: 0 }); // Устанавливаем время первого отправления
 
   // Если текущее время больше времени отправления, добавляем интервал частоты отправлений
@@ -37,7 +37,7 @@ const getNextDeparture = (firstDepartureTime, frequencyMinutes) => {
   }
 
   // Рассчитываем конец дня
-  const endOfDay = DateTime.now()
+  const endOfDay = DateTime.now().setZone(timeZone)
     .set({ hour: 23, minute: 59, second: 59 }); 
 
   // Если время отправления больше конца дня, переносим его на следующий день
@@ -67,7 +67,7 @@ const getNextDeparture = (firstDepartureTime, frequencyMinutes) => {
 const sendUpdateData = async () => {
   const buses = await loadBuses(); // Загружаем данные об автобусах
 
-  // Получение тtкущего времени
+  // Получение текущего времени
   const now = DateTime.now().setZone(timeZone);
 
   // Обновляем данные для каждого автобуса, рассчитывая время следующего отправления
