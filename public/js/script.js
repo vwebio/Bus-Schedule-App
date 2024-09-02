@@ -120,7 +120,7 @@ const renderBusData = (buses) => {
 // Функция для инициализации WebSocket соединения
 const initWebsocket = () => {
   // Создаем новое WebSocket соединение с текущим хостом
-  const ws = new WebSocket(`ws://${location.host}`);
+  const ws = new WebSocket(`wss://${location.host}`);
 
   // Событие при открытии соединения
   ws.addEventListener("open", () => {
